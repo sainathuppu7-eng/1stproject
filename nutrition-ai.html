@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NutriAI – Your Personal Nutrition Assistant</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #22c55e;
+      --green-dark: #16a34a;
+      --green-light: #dcfce7;
+      --bg: #f0fdf4;
+      --card: #ffffff;
+      --border: #d1fae5;
+      --text: #14532d;
+      --muted: #4b7a5c;
+      --accent: #f97316;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* NAV */
+    nav {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 8px rgba(34,197,94,.08);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; color: var(--green-dark); }
+    .logo svg { width: 32px; height: 32px; }
+    nav ul { list-style: none; display: flex; gap: 28px; }
+    nav ul li a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 15px; transition: color .2s; }
+    nav ul li a:hover { color: var(--green-dark); }
+    .nav-cta { background: var(--green); color: #fff !important; padding: 8px 20px; border-radius: 8px; font-weight: 600 !important; transition: background .2s !important; }
+    .nav-cta:hover { background: var(--green-dark) !important; color: #fff !important; }
+
+    /* HERO */
+    .hero {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 80px 24px 60px;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    }
+    .hero-badge { background: var(--green-light); color: var(--green-dark); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 999px; border: 1px solid var(--green); margin-bottom: 22px; display: inline-block; }
+    .hero h1 { font-size: clamp(32px, 5vw, 58px); font-weight: 900; line-height: 1.15; color: var(--text); max-width: 760px; }
+    .hero h1 span { color: var(--green); }
+    .hero p { margin-top: 18px; font-size: 18px; color: var(--muted); max-width: 580px; line-height: 1.7; }
+    .hero-btns { display: flex; gap: 14px; margin-top: 32px; flex-wrap: wrap; justify-content: center; }
+    .btn-primary { background: var(--green); color: #fff; border: none; padding: 14px 32px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background .2s, transform .15s; }
+    .btn-primary:hover { background: var(--green-dark); transform: translateY(-2px); }
+    .btn-secondary { background: #fff; color: var(--green-dark); border: 2px solid var(--green); padding: 14px 32px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background .2s; }
+    .btn-secondary:hover { background: var(--green-light); }
+    .hero-stats { display: flex; gap: 40px; margin-top: 50px; flex-wrap: wrap; justify-content: center; }
+    .stat { text-align: center; }
+    .stat .num { font-size: 28px; font-weight: 900; color: var(--green-dark); }
+    .stat .lbl { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* SECTION */
+    section { padding: 64px 24px; }
+    .section-title { text-align: center; font-size: clamp(22px, 3vw, 34px); font-weight: 800; color: var(--text); margin-bottom: 10px; }
+    .section-sub { text-align: center; color: var(--muted); font-size: 16px; max-width: 540px; margin: 0 auto 44px; line-height: 1.65; }
+
+    /* AI CHAT */
+    #ai-chat { background: #fff; }
+    .chat-wrapper { max-width: 760px; margin: 0 auto; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 24px rgba(34,197,94,.10); }
+    .chat-header { background: var(--green); color: #fff; padding: 18px 24px; display: flex; align-items: center; gap: 12px; }
+    .ai-avatar { width: 40px; height: 40px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .ai-avatar svg { width: 24px; height: 24px; }
+    .chat-header-info h3 { font-size: 16px; font-weight: 700; }
+    .chat-header-info p { font-size: 12px; opacity: .85; }
+    .online-dot { width: 8px; height: 8px; background: #a7f3d0; border-radius: 50%; margin-left: auto; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .chat-messages { height: 360px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .msg { display: flex; gap: 10px; align-items: flex-start; }
+    .msg.user { flex-direction: row-reverse; }
+    .msg-bubble { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+    .msg.ai .msg-bubble { background: #fff; border: 1px solid var(--border); color: var(--text); border-top-left-radius: 2px; }
+    .msg.user .msg-bubble { background: var(--green); color: #fff; border-top-right-radius: 2px; }
+    .msg-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+    .msg.ai .msg-icon { background: var(--green-light); }
+    .msg.user .msg-icon { background: var(--green-dark); color: #fff; }
+    .chat-input-row { display: flex; gap: 10px; padding: 16px 20px; border-top: 1px solid var(--border); background: #fff; }
+    #chat-input { flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; color: var(--text); background: var(--bg); outline: none; font-family: inherit; }
+    #chat-input:focus { border-color: var(--green); }
+    #send-btn { background: var(--green); color: #fff; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background .2s; }
+    #send-btn:hover { background: var(--green-dark); }
+    .quick-chips { display: flex; gap: 8px; padding: 0 20px 14px; flex-wrap: wrap; background: #fff; }
+    .chip { background: var(--green-light); color: var(--green-dark); border: 1px solid var(--green); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; transition: background .2s; white-space: nowrap; }
+    .chip:hover { background: var(--green); color: #fff; }
+    .typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+    .typing span { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: bounce .8s infinite; }
+    .typing span:nth-child(2) { animation-delay: .15s; }
+    .typing span:nth-child(3) { animation-delay: .30s; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+    /* FEATURES */
+    #features { background: var(--bg); }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px; max-width: 1100px; margin: 0 auto; }
+    .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 24px; transition: transform .2s, box-shadow .2s; }
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(34,197,94,.12); }
+    .feature-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--green-light); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 22px; }
+    .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+    .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    /* MACRO CALCULATOR */
+    #calculator { background: #fff; }
+    .calc-wrapper { max-width: 700px; margin: 0 auto; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 36px; box-shadow: 0 4px 20px rgba(34,197,94,.08); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .form-group select, .form-group input { padding: 11px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); font-family: inherit; outline: none; }
+    .form-group select:focus, .form-group input:focus { border-color: var(--green); }
+    .calc-btn { margin-top: 22px; width: 100%; background: var(--green); color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background .2s; }
+    .calc-btn:hover { background: var(--green-dark); }
+    .results { margin-top: 28px; display: none; }
+    .results h3 { font-size: 17px; font-weight: 700; margin-bottom: 16px; color: var(--text); text-align: center; }
+    .macro-bars { display: flex; flex-direction: column; gap: 14px; }
+    .macro-bar { display: flex; flex-direction: column; gap: 6px; }
+    .macro-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+    .bar-track { height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; transition: width 1s ease; }
+    .bar-fill.carbs { background: var(--green); }
+    .bar-fill.protein { background: #f97316; }
+    .bar-fill.fat { background: #8b5cf6; }
+    .macro-cards { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    .macro-card { flex: 1; min-width: 120px; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+    .macro-card .val { font-size: 22px; font-weight: 800; color: var(--green-dark); }
+    .macro-card .lbl2 { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* FOOD LOG */
+    #food-log { background: var(--bg); }
+    .log-wrapper { max-width: 760px; margin: 0 auto; }
+    .log-input-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    #food-input { flex: 1; padding: 13px 16px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; background: #fff; color: var(--text); outline: none; font-family: inherit; }
+    #food-input:focus { border-color: var(--green); }
+    #add-food-btn { background: var(--green); color: #fff; border: none; padding: 13px 22px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; transition: background .2s; white-space: nowrap; }
+    #add-food-btn:hover { background: var(--green-dark); }
+    .food-list { display: flex; flex-direction: column; gap: 10px; }
+    .food-item { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .food-name { font-weight: 600; font-size: 14px; }
+    .food-macros { display: flex; gap: 12px; font-size: 12px; color: var(--muted); }
+    .food-macros span { background: var(--green-light); padding: 3px 8px; border-radius: 999px; color: var(--green-dark); font-weight: 600; }
+    .food-del { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 6px; transition: background .2s; }
+    .food-del:hover { background: #fee2e2; }
+    .daily-summary { margin-top: 22px; background: var(--green); color: #fff; border-radius: 12px; padding: 20px 24px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .daily-summary .s-item { text-align: center; }
+    .daily-summary .s-val { font-size: 22px; font-weight: 800; }
+    .daily-summary .s-lbl { font-size: 12px; opacity: .85; margin-top: 2px; }
+
+    /* TIPS */
+    #tips { background: #fff; }
+    .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+    .tip-card { border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); }
+    .tip-card.green { background: var(--green-light); border-color: var(--green); }
+    .tip-card.orange { background: #fff7ed; border-color: #fed7aa; }
+    .tip-card.purple { background: #f5f3ff; border-color: #ddd6fe; }
+    .tip-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+    .tip-card.green .tip-tag { color: var(--green-dark); }
+    .tip-card.orange .tip-tag { color: #c2410c; }
+    .tip-card.purple .tip-tag { color: #6d28d9; }
+    .tip-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .tip-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* BMI */
+    #bmi { background: var(--bg); }
+    .bmi-wrapper { max-width: 500px; margin: 0 auto; background: #fff; border-radius: var(--radius); border: 1px solid var(--border); padding: 32px; box-shadow: 0 4px 20px rgba(34,197,94,.08); }
+    .bmi-row { display: flex; gap: 14px; }
+    .bmi-wrapper .form-group { flex: 1; }
+    #bmi-result { margin-top: 24px; display: none; text-align: center; }
+    .bmi-circle { width: 110px; height: 110px; border-radius: 50%; background: var(--green-light); border: 4px solid var(--green); display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 12px; }
+    .bmi-circle .bmi-val { font-size: 28px; font-weight: 900; color: var(--green-dark); }
+    .bmi-circle .bmi-lbl { font-size: 11px; color: var(--muted); }
+    #bmi-category { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    #bmi-advice { font-size: 13px; color: var(--muted); max-width: 340px; margin: 0 auto; line-height: 1.6; }
+
+    /* CTA */
+    .cta-section { background: var(--green); color: #fff; text-align: center; padding: 72px 24px; }
+    .cta-section h2 { font-size: clamp(24px, 4vw, 40px); font-weight: 900; margin-bottom: 14px; }
+    .cta-section p { font-size: 17px; opacity: .9; max-width: 500px; margin: 0 auto 32px; line-height: 1.65; }
+    .btn-white { background: #fff; color: var(--green-dark); border: none; padding: 14px 36px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform .15s; }
+    .btn-white:hover { transform: translateY(-2px); }
+
+    /* FOOTER */
+    footer { background: #14532d; color: #a7f3d0; text-align: center; padding: 28px 24px; font-size: 13px; }
+    footer a { color: #6ee7b7; text-decoration: none; }
+
+    /* SCROLL */
+    html { scroll-behavior: smooth; }
+
+    @media (max-width: 600px) {
+      nav ul { display: none; }
+      nav { padding: 0 20px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .bmi-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="20" fill="#dcfce7"/>
+      <path d="M20 8c-6.627 0-12 5.373-12 12 0 4.418 2.386 8.278 5.93 10.37L20 33l6.07-2.63A11.96 11.96 0 0032 20c0-6.627-5.373-12-12-12z" fill="#22c55e"/>
+      <path d="M16 20a4 4 0 108 0 4 4 0 00-8 0z" fill="#fff"/>
+      <path d="M20 16v-4M20 28v-4M16 20h-4M28 20h-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    NutriAI
+  </div>
+  <ul>
+    <li><a href="#ai-chat">AI Chat</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#calculator">Macros</a></li>
+    <li><a href="#food-log">Food Log</a></li>
+    <li><a href="#bmi">BMI</a></li>
+    <li><a href="#ai-chat" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="hero-badge">🤖 Powered by AI Nutrition Science</span>
+  <h1>Your Personal <span>AI Nutrition</span><br/>Coach & Tracker</h1>
+  <p>Get personalized meal plans, track macros, calculate your BMI, and chat with an AI nutrition expert — all in one place.</p>
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="document.getElementById('ai-chat').scrollIntoView({behavior:'smooth'})">Chat with NutriAI</button>
+    <button class="btn-secondary" onclick="document.getElementById('calculator').scrollIntoView({behavior:'smooth'})">Calculate My Macros</button>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="num">50K+</div><div class="lbl">Users Helped</div></div>
+    <div class="stat"><div class="num">1M+</div><div class="lbl">Meals Tracked</div></div>
+    <div class="stat"><div class="num">98%</div><div class="lbl">Satisfaction Rate</div></div>
+    <div class="stat"><div class="num">200+</div><div class="lbl">Nutrition Plans</div></div>
+  </div>
+</div>
+
+<!-- AI CHAT -->
+<section id="ai-chat">
+  <div class="section-title">Ask NutriAI Anything</div>
+  <div class="section-sub">Get instant answers about nutrition, meal ideas, calorie counts, and personalised dietary advice.</div>
+  <div class="chat-wrapper">
+    <div class="chat-header">
+      <div class="ai-avatar">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="#22c55e"/>
+          <path d="M8 12a4 4 0 008 0" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="9" cy="10" r="1" fill="#fff"/>
+          <circle cx="15" cy="10" r="1" fill="#fff"/>
+        </svg>
+      </div>
+      <div class="chat-header-info">
+        <h3>NutriAI Assistant</h3>
+        <p>Nutrition Expert · Always Online</p>
+      </div>
+      <div class="online-dot"></div>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg ai">
+        <div class="msg-icon">🥗</div>
+        <div class="msg-bubble">Hi! I'm <strong>NutriAI</strong>, your personal nutrition coach. I can help you with meal planning, calorie counts, macro tracking, and healthy eating tips. What would you like to know today?</div>
+      </div>
+    </div>
+    <div class="quick-chips" id="quick-chips">
+      <span class="chip" onclick="sendChip(this)">🥦 High-protein breakfast ideas</span>
+      <span class="chip" onclick="sendChip(this)">💧 Daily water intake</span>
+      <span class="chip" onclick="sendChip(this)">🔥 Foods that boost metabolism</span>
+      <span class="chip" onclick="sendChip(this)">🥑 Healthy fats to eat</span>
+      <span class="chip" onclick="sendChip(this)">🏋️ Pre-workout nutrition</span>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Ask about nutrition, meals, calories…" onkeydown="if(event.key==='Enter') sendMessage()" />
+      <button id="send-btn" onclick="sendMessage()">Send →</button>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-title">Everything You Need</div>
+  <div class="section-sub">NutriAI combines cutting-edge AI with evidence-based nutrition science to help you reach your health goals.</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>AI-Powered Advice</h3>
+      <p>Chat with our intelligent nutrition assistant trained on thousands of peer-reviewed dietary studies and guidelines.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Macro Calculator</h3>
+      <p>Calculate your exact protein, carbohydrate, and fat needs based on your goals, weight, height, and activity level.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📝</div>
+      <h3>Food Journal</h3>
+      <p>Log your daily meals and instantly see nutritional breakdowns, calorie totals, and macro distribution.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚖️</div>
+      <h3>BMI Calculator</h3>
+      <p>Calculate your Body Mass Index and receive personalised recommendations based on your results.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🥗</div>
+      <h3>Meal Planning</h3>
+      <p>Get AI-generated weekly meal plans tailored to your dietary preferences, restrictions, and calorie targets.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💡</div>
+      <h3>Smart Tips</h3>
+      <p>Receive daily nutrition tips, hydration reminders, and science-backed healthy eating strategies.</p>
+    </div>
+  </div>
+</section>
+
+<!-- MACRO CALCULATOR -->
+<section id="calculator">
+  <div class="section-title">Macro Calculator</div>
+  <div class="section-sub">Enter your details to get your personalised daily calorie and macro targets.</div>
+  <div class="calc-wrapper">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" id="age" placeholder="e.g. 25" min="10" max="100" />
+      </div>
+      <div class="form-group">
+        <label>Gender</label>
+        <select id="gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input type="number" id="weight" placeholder="e.g. 70" min="30" max="300" />
+      </div>
+      <div class="form-group">
+        <label>Height (cm)</label>
+        <input type="number" id="height" placeholder="e.g. 175" min="100" max="250" />
+      </div>
+      <div class="form-group">
+        <label>Activity Level</label>
+        <select id="activity">
+          <option value="1.2">Sedentary (little/no exercise)</option>
+          <option value="1.375">Lightly Active (1-3 days/wk)</option>
+          <option value="1.55" selected>Moderately Active (3-5 days/wk)</option>
+          <option value="1.725">Very Active (6-7 days/wk)</option>
+          <option value="1.9">Extra Active (physical job)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Goal</label>
+        <select id="goal">
+          <option value="lose">Lose Weight</option>
+          <option value="maintain" selected>Maintain Weight</option>
+          <option value="gain">Gain Muscle</option>
+        </select>
+      </div>
+    </div>
+    <button class="calc-btn" onclick="calculateMacros()">Calculate My Macros →</button>
+    <div class="results" id="calc-results">
+      <h3 id="calories-result"></h3>
+      <div class="macro-cards" id="macro-cards"></div>
+      <div class="macro-bars" id="macro-bars" style="margin-top:20px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOD LOG -->
+<section id="food-log">
+  <div class="section-title">Daily Food Journal</div>
+  <div class="section-sub">Track what you eat throughout the day and monitor your nutritional intake.</div>
+  <div class="log-wrapper">
+    <div class="log-input-row">
+      <input type="text" id="food-input" placeholder="Enter a food (e.g. 2 eggs, 100g chicken, 1 banana)…" onkeydown="if(event.key==='Enter') addFood()" />
+      <button id="add-food-btn" onclick="addFood()">+ Add Food</button>
+    </div>
+    <div class="food-list" id="food-list"></div>
+    <div class="daily-summary" id="daily-summary" style="display:none">
+      <div class="s-item"><div class="s-val" id="sum-cal">0</div><div class="s-lbl">Calories</div></div>
+      <div class="s-item"><div class="s-val" id="sum-prot">0g</div><div class="s-lbl">Protein</div></div>
+      <div class="s-item"><div class="s-val" id="sum-carb">0g</div><div class="s-lbl">Carbs</div></div>
+      <div class="s-item"><div class="s-val" id="sum-fat">0g</div><div class="s-lbl">Fat</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TIPS -->
+<section id="tips">
+  <div class="section-title">Nutrition Tips</div>
+  <div class="section-sub">Evidence-based strategies to optimise your diet and improve your health.</div>
+  <div class="tips-grid">
+    <div class="tip-card green">
+      <div class="tip-tag">🥦 Vegetables</div>
+      <h4>Fill Half Your Plate with Veggies</h4>
+      <p>Non-starchy vegetables are nutrient-dense and low in calories. Aim for a variety of colours to maximise micronutrient intake.</p>
+    </div>
+    <div class="tip-card orange">
+      <div class="tip-tag">💧 Hydration</div>
+      <h4>Drink Water Before Every Meal</h4>
+      <p>Drinking 500ml of water 30 minutes before meals can reduce calorie intake by up to 13% and boost metabolism temporarily.</p>
+    </div>
+    <div class="tip-card purple">
+      <div class="tip-tag">🏋️ Protein</div>
+      <h4>Prioritise Protein at Breakfast</h4>
+      <p>A high-protein breakfast reduces hunger hormones and cravings throughout the day, supporting fat loss and muscle maintenance.</p>
+    </div>
+    <div class="tip-card green">
+      <div class="tip-tag">🌙 Timing</div>
+      <h4>Avoid Eating 2–3 Hours Before Bed</h4>
+      <p>Late-night eating can disrupt sleep quality and metabolism. If hungry, opt for a small protein-rich snack like Greek yogurt.</p>
+    </div>
+    <div class="tip-card orange">
+      <div class="tip-tag">🍎 Fibre</div>
+      <h4>Aim for 25–35g of Fibre Daily</h4>
+      <p>Dietary fibre improves gut health, stabilises blood sugar, and keeps you full longer. Include legumes, whole grains, and fruit.</p>
+    </div>
+    <div class="tip-card purple">
+      <div class="tip-tag">🧠 Mindful Eating</div>
+      <h4>Eat Slowly and Without Distraction</h4>
+      <p>It takes 20 minutes for your brain to register fullness. Eating mindfully helps prevent overeating and improves digestion.</p>
+    </div>
+  </div>
+</section>
+
+<!-- BMI -->
+<section id="bmi">
+  <div class="section-title">BMI Calculator</div>
+  <div class="section-sub">Calculate your Body Mass Index and understand what it means for your health.</div>
+  <div class="bmi-wrapper">
+    <div class="bmi-row">
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input type="number" id="bmi-weight" placeholder="e.g. 70" min="20" max="300" />
+      </div>
+      <div class="form-group">
+        <label>Height (cm)</label>
+        <input type="number" id="bmi-height" placeholder="e.g. 175" min="100" max="250" />
+      </div>
+    </div>
+    <button class="calc-btn" onclick="calculateBMI()">Calculate BMI →</button>
+    <div id="bmi-result">
+      <div class="bmi-circle">
+        <div class="bmi-val" id="bmi-value">--</div>
+        <div class="bmi-lbl">BMI</div>
+      </div>
+      <div id="bmi-category"></div>
+      <div id="bmi-advice"></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <h2>Start Your Nutrition Journey Today</h2>
+  <p>Join thousands of people who have transformed their health with NutriAI's personalised guidance.</p>
+  <button class="btn-white" onclick="document.getElementById('ai-chat').scrollIntoView({behavior:'smooth'})">Chat with NutriAI Free →</button>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2025 NutriAI · Built with ❤️ for healthier living · <a href="#">Privacy</a> · <a href="#">Terms</a></p>
+  <p style="margin-top:6px;opacity:.6;font-size:11px;">NutriAI provides general nutrition information only and is not a substitute for professional medical advice.</p>
+</footer>
+
+<script>
+  // ── AI CHAT ──────────────────────────────────────────────────────────────
+  const responses = {
+    "protein": ["Great question! Protein is essential for muscle repair and growth. Good sources include chicken breast (~31g/100g), eggs (~13g each), Greek yogurt (~17g/170g), lentils (~9g/100g cooked), and tuna (~30g/100g). For most adults, aim for 0.8–1.6g per kg of body weight daily.", "For high protein foods, consider: salmon (25g/100g), cottage cheese (11g/100g), chickpeas (9g/100g), quinoa (4g/100g) and tofu (8g/100g). Spreading protein across meals maximises muscle protein synthesis!"],
+    "breakfast": ["Here are some high-protein breakfast ideas: 🥚 3-egg omelette with spinach (21g protein, ~230 kcal) · 🥣 Greek yogurt with berries (17g protein, ~150 kcal) · 🥞 Protein oats with banana (25g protein, ~380 kcal) · 🍳 Smoked salmon on wholegrain toast (22g protein, ~300 kcal). All great choices to start your day!"],
+    "calorie": ["Your daily calorie needs depend on your age, weight, height, and activity level. A quick estimate: multiply your weight in kg by 22 for your BMR, then by your activity factor (1.2–1.9). Use our Macro Calculator above for a precise number! General guides: sedentary adults need ~1600–2000 kcal, active adults ~2200–2800 kcal."],
+    "water": ["The general recommendation is 8 glasses (2 litres) per day, but individual needs vary! A better formula: drink ~35ml per kg of body weight. So a 70kg person needs ~2.45 litres daily. Exercise adds 500–750ml per hour of activity. Tip: drink a glass of water first thing in the morning and before every meal!"],
+    "weight loss": ["For sustainable weight loss, aim for a 300–500 kcal daily deficit. Key strategies: ✅ Prioritise protein (keeps you fuller longer) · ✅ Eat plenty of fibre-rich vegetables · ✅ Limit ultra-processed foods and sugary drinks · ✅ Sleep 7–9 hours (poor sleep raises hunger hormones) · ✅ Strength train to preserve muscle mass. Avoid crash diets — slow and steady wins the race!"],
+    "metabolism": ["Foods that boost metabolism include: 🌶️ Chilli peppers (capsaicin increases calorie burn by ~50 kcal/day) · ☕ Green tea & coffee (thermogenic effect) · 🐟 Protein-rich foods (high thermic effect of food) · 💧 Cold water (temporarily raises metabolism by 10–30%). Importantly, building muscle mass through strength training is the best long-term metabolism booster!"],
+    "fat": ["Healthy fats are essential! Focus on: 🥑 Avocados (monounsaturated fats) · 🐟 Fatty fish like salmon, mackerel (omega-3s) · 🫒 Olive oil (oleic acid) · 🥜 Nuts and seeds (mixed healthy fats) · 🫐 Dark chocolate 70%+ (stearic acid). Limit saturated fats and avoid trans fats. Fat should make up about 25–35% of your total calories."],
+    "pre-workout": ["Optimal pre-workout nutrition (1–2 hrs before): 🍌 Banana + nut butter (carbs + healthy fat) · 🥣 Oats with berries (slow-release carbs) · 🐔 Chicken with rice (protein + carbs). If training in <30 mins: a banana or a small handful of raisins works great. Stay hydrated — drink 500ml water 2 hrs before exercise!"],
+    "vitamin": ["Key vitamins for nutrition: 🌞 Vitamin D — from sunlight and fatty fish, crucial for immunity and bone health · 🥩 Vitamin B12 — meat, eggs, dairy; important for nerve function · 🍊 Vitamin C — citrus, bell peppers; antioxidant and immune support · 🥕 Vitamin A — orange/yellow vegetables; vision and immune health. A varied whole-food diet covers most needs!"],
+    "default": ["That's a great nutrition question! In general, focus on whole, minimally processed foods, adequate protein intake, plenty of colourful vegetables, and staying well-hydrated. Would you like me to elaborate on any specific aspect of nutrition?", "Nutrition is fascinating! The key principles are: eat mostly whole foods, balance your macros (protein, carbs, fats), stay hydrated, and listen to your body's hunger cues. Is there a specific area you'd like to dive deeper into?", "I'd love to help you with that! For personalised advice, use our Macro Calculator to get your exact targets, and feel free to ask me anything specific about foods, nutrients, or meal planning. What's your main health goal?"]
+  };
+
+  function getAIResponse(msg) {
+    const m = msg.toLowerCase();
+    if (m.includes("protein") || m.includes("muscle")) return pick(responses.protein);
+    if (m.includes("breakfast") || m.includes("morning")) return pick(responses.breakfast);
+    if (m.includes("calorie") || m.includes("caloric") || m.includes("kcal")) return pick(responses.calorie);
+    if (m.includes("water") || m.includes("hydrat")) return pick(responses.water);
+    if (m.includes("weight loss") || m.includes("lose weight") || m.includes("diet")) return pick(responses.weight_loss || responses["weight loss"]);
+    if (m.includes("metabolism") || m.includes("burn")) return pick(responses.metabolism);
+    if (m.includes("fat") || m.includes("avocado") || m.includes("omega")) return pick(responses.fat);
+    if (m.includes("pre-workout") || m.includes("workout") || m.includes("exercise") || m.includes("gym")) return pick(responses["pre-workout"]);
+    if (m.includes("vitamin") || m.includes("mineral") || m.includes("supplement")) return pick(responses.vitamin);
+    return pick(responses.default);
+  }
+
+  function pick(arr) { return Array.isArray(arr) ? arr[Math.floor(Math.random()*arr.length)] : arr; }
+
+  function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const text = input.value.trim();
+    if (!text) return;
+    appendMsg("user", text);
+    input.value = "";
+    showTyping();
+    setTimeout(() => { removeTyping(); appendMsg("ai", getAIResponse(text)); }, 900 + Math.random()*600);
+  }
+
+  function sendChip(el) {
+    const text = el.textContent.trim();
+    appendMsg("user", text);
+    showTyping();
+    setTimeout(() => { removeTyping(); appendMsg("ai", getAIResponse(text)); }, 900 + Math.random()*600);
+  }
+
+  function appendMsg(role, text) {
+    const box = document.getElementById("chat-messages");
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    div.innerHTML = `<div class="msg-icon">${role==="ai"?"🥗":"👤"}</div><div class="msg-bubble">${text}</div>`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function showTyping() {
+    const box = document.getElementById("chat-messages");
+    const div = document.createElement("div");
+    div.className = "msg ai"; div.id = "typing-indicator";
+    div.innerHTML = `<div class="msg-icon">🥗</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function removeTyping() {
+    const t = document.getElementById("typing-indicator");
+    if (t) t.remove();
+  }
+
+  // ── MACRO CALCULATOR ────────────────────────────────────────────────────
+  function calculateMacros() {
+    const age = +document.getElementById("age").value;
+    const weight = +document.getElementById("weight").value;
+    const height = +document.getElementById("height").value;
+    const gender = document.getElementById("gender").value;
+    const activity = +document.getElementById("activity").value;
+    const goal = document.getElementById("goal").value;
+
+    if (!age || !weight || !height) { alert("Please fill in all fields."); return; }
+
+    let bmr = gender === "male"
+      ? 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+      : 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+
+    let tdee = bmr * activity;
+    if (goal === "lose") tdee -= 400;
+    if (goal === "gain") tdee += 300;
+    tdee = Math.round(tdee);
+
+    const protein = Math.round(weight * 2.0);
+    const fat = Math.round((tdee * 0.28) / 9);
+    const carbs = Math.round((tdee - protein * 4 - fat * 9) / 4);
+
+    const res = document.getElementById("calc-results");
+    res.style.display = "block";
+    document.getElementById("calories-result").textContent = `Daily Target: ${tdee} kcal`;
+
+    document.getElementById("macro-cards").innerHTML = `
+      <div class="macro-card"><div class="val">${protein}g</div><div class="lbl2">Protein</div></div>
+      <div class="macro-card"><div class="val">${carbs}g</div><div class="lbl2">Carbs</div></div>
+      <div class="macro-card"><div class="val">${fat}g</div><div class="lbl2">Fat</div></div>
+      <div class="macro-card"><div class="val">${tdee}</div><div class="lbl2">Calories</div></div>
+    `;
+
+    const total = protein*4 + carbs*4 + fat*9;
+    document.getElementById("macro-bars").innerHTML = `
+      <div class="macro-bar"><div class="macro-label"><span>Protein</span><span>${protein}g · ${Math.round(protein*4/total*100)}%</span></div><div class="bar-track"><div class="bar-fill protein" style="width:${Math.round(protein*4/total*100)}%"></div></div></div>
+      <div class="macro-bar"><div class="macro-label"><span>Carbs</span><span>${carbs}g · ${Math.round(carbs*4/total*100)}%</span></div><div class="bar-track"><div class="bar-fill carbs" style="width:${Math.round(carbs*4/total*100)}%"></div></div></div>
+      <div class="macro-bar"><div class="macro-label"><span>Fat</span><span>${fat}g · ${Math.round(fat*9/total*100)}%</span></div><div class="bar-track"><div class="bar-fill fat" style="width:${Math.round(fat*9/total*100)}%"></div></div></div>
+    `;
+  }
+
+  // ── FOOD LOG ────────────────────────────────────────────────────────────
+  const foodDB = {
+    "egg": {cal:77, prot:6, carb:1, fat:5},
+    "eggs": {cal:77, prot:6, carb:1, fat:5},
+    "banana": {cal:89, prot:1, carb:23, fat:0},
+    "apple": {cal:52, prot:0, carb:14, fat:0},
+    "chicken": {cal:165, prot:31, carb:0, fat:4},
+    "rice": {cal:130, prot:3, carb:28, fat:0},
+    "oats": {cal:150, prot:5, carb:27, fat:3},
+    "salmon": {cal:208, prot:20, carb:0, fat:13},
+    "milk": {cal:61, prot:3, carb:5, fat:3},
+    "bread": {cal:79, prot:3, carb:15, fat:1},
+    "pasta": {cal:131, prot:5, carb:25, fat:1},
+    "yogurt": {cal:100, prot:9, carb:6, fat:4},
+    "avocado": {cal:160, prot:2, carb:9, fat:15},
+    "almonds": {cal:164, prot:6, carb:6, fat:14},
+    "broccoli": {cal:34, prot:3, carb:7, fat:0},
+    "spinach": {cal:23, prot:3, carb:4, fat:0},
+    "potato": {cal:77, prot:2, carb:17, fat:0},
+    "tuna": {cal:128, prot:29, carb:0, fat:1},
+    "cheese": {cal:110, prot:7, carb:0, fat:9},
+    "orange": {cal:47, prot:1, carb:12, fat:0},
+  };
+
+  let foodItems = [];
+
+  function addFood() {
+    const input = document.getElementById("food-input");
+    const raw = input.value.trim();
+    if (!raw) return;
+
+    const words = raw.toLowerCase().split(" ");
+    let found = null, qty = 1;
+    for (const w of words) {
+      const n = parseFloat(w);
+      if (!isNaN(n)) qty = n;
+      if (foodDB[w]) found = {name: w, ...foodDB[w]};
+    }
+
+    if (!found) {
+      const keys = Object.keys(foodDB);
+      for (const k of keys) {
+        if (raw.toLowerCase().includes(k)) { found = {name: k, ...foodDB[k]}; break; }
+      }
+    }
+
+    if (!found) {
+      const cal = Math.floor(Math.random()*200)+80;
+      found = {name: raw, cal, prot: Math.floor(cal*0.12/4), carb: Math.floor(cal*0.5/4), fat: Math.floor(cal*0.3/9)};
+    }
+
+    const item = {id: Date.now(), name: raw, cal: Math.round(found.cal*qty), prot: Math.round(found.prot*qty), carb: Math.round(found.carb*qty), fat: Math.round(found.fat*qty)};
+    foodItems.push(item);
+    renderFoodLog();
+    input.value = "";
+  }
+
+  function removeFood(id) {
+    foodItems = foodItems.filter(f => f.id !== id);
+    renderFoodLog();
+  }
+
+  function renderFoodLog() {
+    const list = document.getElementById("food-list");
+    list.innerHTML = foodItems.map(f => `
+      <div class="food-item">
+        <div>
+          <div class="food-name">${f.name}</div>
+          <div class="food-macros" style="margin-top:4px">
+            <span>${f.cal} kcal</span>
+            <span>P: ${f.prot}g</span>
+            <span>C: ${f.carb}g</span>
+            <span>F: ${f.fat}g</span>
+          </div>
+        </div>
+        <button class="food-del" onclick="removeFood(${f.id})">✕</button>
+      </div>
+    `).join("");
+
+    if (foodItems.length > 0) {
+      const totals = foodItems.reduce((a,f) => ({cal:a.cal+f.cal, prot:a.prot+f.prot, carb:a.carb+f.carb, fat:a.fat+f.fat}), {cal:0,prot:0,carb:0,fat:0});
+      document.getElementById("daily-summary").style.display = "flex";
+      document.getElementById("sum-cal").textContent = totals.cal;
+      document.getElementById("sum-prot").textContent = totals.prot + "g";
+      document.getElementById("sum-carb").textContent = totals.carb + "g";
+      document.getElementById("sum-fat").textContent = totals.fat + "g";
+    } else {
+      document.getElementById("daily-summary").style.display = "none";
+    }
+  }
+
+  // ── BMI CALCULATOR ───────────────────────────────────────────────────────
+  function calculateBMI() {
+    const w = +document.getElementById("bmi-weight").value;
+    const h = +document.getElementById("bmi-height").value / 100;
+    if (!w || !h) { alert("Please enter weight and height."); return; }
+
+    const bmi = (w / (h * h)).toFixed(1);
+    document.getElementById("bmi-value").textContent = bmi;
+
+    let cat, advice, col;
+    if (bmi < 18.5) {
+      cat = "Underweight"; col = "#f97316";
+      advice = "Your BMI suggests you may be underweight. Consider consulting a dietitian to develop a nutrient-dense meal plan to reach a healthy weight safely.";
+    } else if (bmi < 25) {
+      cat = "Normal Weight ✓"; col = "#22c55e";
+      advice = "Great news! You are within a healthy BMI range. Maintain this by continuing balanced nutrition and regular physical activity.";
+    } else if (bmi < 30) {
+      cat = "Overweight"; col = "#eab308";
+      advice = "Your BMI is in the overweight range. A modest calorie deficit of 300–400 kcal/day combined with regular exercise can help you reach a healthy weight.";
+    } else {
+      cat = "Obese"; col = "#ef4444";
+      advice = "Your BMI indicates obesity. We recommend consulting a healthcare professional for personalised guidance on nutrition, exercise, and lifestyle changes.";
+    }
+
+    const res = document.getElementById("bmi-result");
+    res.style.display = "block";
+    const circle = document.querySelector(".bmi-circle");
+    circle.style.borderColor = col;
+    circle.style.background = col + "22";
+    document.querySelector(".bmi-circle .bmi-val").style.color = col;
+    document.getElementById("bmi-category").textContent = cat;
+    document.getElementById("bmi-category").style.color = col;
+    document.getElementById("bmi-advice").textContent = advice;
+  }
+</script>
+</body>
+</html>
